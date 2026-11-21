@@ -6,6 +6,7 @@ import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { TelegramBridge } from '../index.js'
+import { isPathInside } from '../src/bridge/kernel.js'
 
 const ref = (value) => ({ get: () => value })
 
@@ -82,7 +83,8 @@ function makeHarness(options = {}) {
 
   globalThis.fetch = async (url, init) => {
     const method = String(url).split('/').pop()
-    const params = init?.body ? JSON.parse(init.body) : {}
+    // sendDocument шлёт FormData — такие вызовы просто фиксируем без разбора тела.
+    const params = typeof init?.body === 'string' ? JSON.parse(init.body) : {}
     calls.push({ method, params })
     return { status: 200, json: async () => ({ ok: true, result: { message_id: calls.length } }) }
   }
@@ -505,3 +507,32 @@ test('/lang переопубликовывает меню чата', async () =>
     'меню переведено после /lang',
   )
 })
+
+test('isPathInside: обход через .. не проходит', () => {
+  assert.equal(isPathInside('/w', '/w/a.txt'), true);
+  assert.equal(isPathInside('/w', '/w/../etc/hosts'), false);
+  assert.equal(isPathInside('/w', '/etc/hosts'), false);
+  assert.equal(isPathInside('/w', '/wsub/x'), false);
+  assert.equal(isPathInside('/w', '/w'), false, 'сам каталог — не файл');
+  assert.equal(isPathInside('', '/w/a.txt'), false);
+});
+
+test('telegram_send: файл вне workspace не уходит без разрешения', async () => {
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555 } })
+  await bridge.handleMessage(message(555, '/start'), 59, 'TOKEN')
+
+  await assert.rejects(bridge.sendToOwner('', '/etc/hosts'), /outside the workspace/);
+  assert.equal(calls.filter((call) => call.method === 'sendDocument').length, 0, 'файл не отправлен');
+});
+
+test('telegram_send: allowAnyPath разрешает файл вне workspace', async () => {
+  const file = path.join(tmpdir(), `dsh-tg-send-${process.pid}-${Date.now()}.txt`);
+  await writeFile(file, 'hello');
+
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555, allowAnyPath: true } });
+  await bridge.handleMessage(message(555, '/start'), 60, 'TOKEN');
+
+  const result = await bridge.sendToOwner('', file);
+  assert.equal(result.ok, true);
+  assert.ok(calls.some((call) => call.method === 'sendDocument'), 'файл ушёл документом');
+});

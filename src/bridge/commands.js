@@ -8,7 +8,7 @@ import { sendDocument } from '../tg/files.js'
 import { escapeHtml } from '../tg/html.js'
 import { webhookInfo } from '../tg/poll.js'
 import path from 'node:path'
-import { MAX_TEXT } from './kernel.js'
+import { MAX_TEXT, isPathInside } from './kernel.js'
 
 export const commands = {
 async handleMessage(message, updateId, token) {
@@ -424,6 +424,11 @@ async sendToOwner(text, file) {
     sent.push('text')
   }
   if (typeof file === 'string' && file !== '') {
+    const workspace = await this.workspacePath()
+    // Инъекция в промпт не должна превращать бота в канал утечки файлов с машины.
+    if (!this.cfg().allowAnyPath && !isPathInside(workspace, file)) {
+      throw new Error(`file is outside the workspace (${workspace}); owner can allow any path in the Telegram panel`)
+    }
     const message = await sendDocument(token, {
       chatId: target.chatId,
       threadId: target.threadId,

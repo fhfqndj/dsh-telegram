@@ -47,6 +47,14 @@ export function matchesTool(name, pattern) {
   return regex.test(name)
 }
 
+/** Лежит ли файл внутри каталога: сравниваем после resolve, иначе `..` обходит проверку. */
+export function isPathInside(root, target) {
+  if (typeof root !== 'string' || root === '') return false
+  if (typeof target !== 'string' || target === '') return false
+  const relative = path.relative(path.resolve(root), path.resolve(target))
+  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative)
+}
+
 /** Текст из AssistantMessage: склеивает текстовые части, игнорируя остальные. */
 export function extractText(message) {
   const content = message?.content
