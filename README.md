@@ -16,7 +16,7 @@ npx dsh-telegram-connect status           # профиль, патч, секре
 npx dsh-telegram-connect uninstall        # убрать мост
 ```
 
-Пока пакета нет в npm, установка прямо из репозитория:
+Установка прямо из репозитория (если нужна версия из `master`):
 
 ```bash
 npx github:fhfqndj/dsh-telegram install
