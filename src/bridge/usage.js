@@ -4,6 +4,12 @@
 import { formatTokens } from './kernel.js'
 
 export const usage = {
+/**
+ * Копит расход токенов по сессии.
+ * @param {string} sessionId
+ * @param {{inputTokens?: number, outputTokens?: number, cacheReadTokens?: number,
+ *   cacheWriteTokens?: number, reasoningTokens?: number}} usage
+ */
 addUsage(sessionId, usage) {
   if (usage === undefined || usage === null) return
   const current = this.state.usage?.[sessionId] ?? {
@@ -32,12 +38,7 @@ addUsage(sessionId, usage) {
 },
 
 /**
- * Чистит накопленное: расход и модели по старым сессиям, биндинги удалённых сессий.
- *
- * Запускается на старте и раз в шесть часов. `retentionDays = 0` отключает чистку
- * записей о расходе; биндинги на несуществующие сессии убираются всегда.
- *
- * @returns {Promise<{usage: number, model: number, bindings: number}>}
+ * Расход по сессии и суммарно по всем сессиям.
  */
 usageOf(sessionId) {
   const zero = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0, requests: 0 }
@@ -53,10 +54,7 @@ usageOf(sessionId) {
   return { session, total, sessions: Object.keys(this.state.usage ?? {}).length }
 },
 
-/**
- * Каталог моделей: провайдеры и их модели.
- * @returns {Promise<{provider: string, models: string[]}[]>}
- */
+/** Текст /cost: расход текущей сессии и суммарный. */
 async costText(chatId, threadId) {
   const say = (key, params) => this.say(chatId, threadId, key, params)
   const binding = this.bindingFor(chatId, threadId)
@@ -82,6 +80,14 @@ async costText(chatId, threadId) {
   return lines.join('\n')
 },
 
+/**
+ * Чистит накопленное: расход и модели по старым сессиям, биндинги удалённых сессий.
+ *
+ * Запускается на старте и раз в шесть часов. `retentionDays = 0` отключает чистку
+ * записей о расходе; биндинги на несуществующие сессии убираются всегда.
+ *
+ * @returns {Promise<{usage: number, model: number, bindings: number}>}
+ */
 async pruneState() {
   const days = this.cfg().retentionDays
   const now = Date.now()
@@ -135,5 +141,4 @@ async pruneState() {
   return removed
 }
 
-/** Расход по сессии и суммарно по всем сессиям. */
 }

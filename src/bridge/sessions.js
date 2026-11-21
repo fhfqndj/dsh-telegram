@@ -9,6 +9,14 @@ import path from 'node:path'
 import { SESSION_BUTTON_TTL_MS, extractText } from './kernel.js'
 
 export const sessions = {
+/**
+ * Каталог для новых сессий и список /sessions.
+ *
+ * Явный workspacePath важнее всего. Пустое значение раньше брало первый
+ * зарегистрированный workspace — а это может быть чужой проект, поэтому
+ * теперь берём каталог последней активной сессии, и только если сессий нет,
+ * первый зарегистрированный.
+ */
 async workspacePath() {
   const configured = this.cfg().workspacePath
   if (configured !== '') return configured
@@ -196,11 +204,9 @@ async stopSession(chatId, threadId) {
       error: escapeHtml(String(error?.message ?? error)),
     }), threadId)
   }
-}
+},
 
-
-/** Все сессии без выбора workspace: используется и списком, и фолбэком workspace. */,
-
+/** Все сессии без выбора workspace: используется и списком, и фолбэком workspace. */
 async listAllSessions() {
   try {
     const value = await this.ctx.sessionController.list({}, this.signal())
@@ -410,7 +416,4 @@ async isWorkspaceSession(sessionId) {
   }
   return this.workspaceCache.ids.has(sessionId)
 }
-
-/** Включены ли уведомления в этом чате. */
-/** Чат замьючен: ответы и карточки не идут, вопросы и подтверждения — идут. */
 }

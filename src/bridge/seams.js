@@ -6,6 +6,11 @@ import { escapeHtml } from '../tg/html.js'
 import { SAFE_TOOLS, matchesTool } from './kernel.js'
 
 export const seams = {
+/**
+ * Подтверждение инструмента из Telegram. Возвращает исход для approval-seam:
+ * allowed-once / rejected / cancelled / unavailable. Без привязанного чата
+ * уступает следующему ответчику (Web UI).
+ */
 async onApprovalRequest(request, next) {
   const cfg = this.cfg()
   const sessionId = request?.agent?.id
@@ -72,15 +77,19 @@ async onApprovalRequest(request, next) {
       threadId: chat.threadId,
     })
   })
-}
+},
 
 
 /**
- * Вопрос агента из Telegram: карточка с кнопками вариантов и свободный ответ.
- * Возвращает { answers } для seam `user-questions/request`; без привязанного
- * чата уступает следующему ответчику (Web UI).
- */,
-
+ * Решение политики без вопроса в чат.
+ *
+ * `undefined` — спрашиваем. Иначе готовый исход: `rejected` для denylist,
+ * `allowed-once` для allowlist, посттуры trusted (только чтение) и yolo.
+ *
+ * @param {string} tool имя инструмента
+ * @param {object} cfg прочитанный конфиг
+ * @returns {'rejected' | 'allowed-once' | undefined}
+ */
 decideApproval(tool, cfg) {
   const name = String(tool).toLowerCase()
   if (cfg.approvalsDeny.some((pattern) => matchesTool(name, pattern))) return 'rejected'
@@ -91,10 +100,9 @@ decideApproval(tool, cfg) {
 },
 
 /**
- * Копит расход токенов по сессии.
- * @param {string} sessionId
- * @param {{inputTokens?: number, outputTokens?: number, cacheReadTokens?: number,
- *   cacheWriteTokens?: number, reasoningTokens?: number}} usage
+ * Вопрос агента из Telegram: карточка с кнопками вариантов и свободный ответ.
+ * Возвращает { answers } для seam `user-questions/request`; без привязанного
+ * чата уступает следующему ответчику (Web UI).
  */
 async onQuestionRequest(request, next) {
   const cfg = this.cfg()
@@ -240,14 +248,4 @@ pendingQuestionFor(chatId, threadId) {
   return undefined
 }
 
-/**
- * Решение политики без вопроса в чат.
- *
- * `undefined` — спрашиваем. Иначе готовый исход: `rejected` для denylist,
- * `allowed-once` для allowlist, посттуры trusted (только чтение) и yolo.
- *
- * @param {string} tool имя инструмента
- * @param {object} cfg прочитанный конфиг
- * @returns {'rejected' | 'allowed-once' | undefined}
- */
 }

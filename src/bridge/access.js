@@ -5,12 +5,14 @@ isAllowed(fromId, owner = this.ownerId()) {
   return this.cfg().allowedUsers.includes(fromId)
 },
 
+/** Чат замьючен: ответы и карточки не идут, вопросы и подтверждения — идут. */
 muted(chatId, threadId) {
   const flags = this.state.mute
   if (flags === undefined || flags === null) return false
   return flags[this.bindingKey(chatId, threadId)] === true
 },
 
+/** Включены ли уведомления в этом чате. */
 notifyEnabled(chatId, threadId) {
   const flags = this.state.notify
   if (flags === undefined || flags === null) return false
@@ -43,14 +45,6 @@ async bind(chatId, threadId, sessionId) {
   await this.saveState()
 },
 
-/**
- * Каталог для новых сессий и список /sessions.
- *
- * Явный workspacePath важнее всего. Пустое значение раньше брало первый
- * зарегистрированный workspace — а это может быть чужой проект, поэтому
- * теперь берём каталог последней активной сессии, и только если сессий нет,
- * первый зарегистрированный.
- */
 boundChats(sessionId) {
   const chats = []
   for (const [key, binding] of Object.entries(this.state.bindings)) {
@@ -90,5 +84,4 @@ rememberAssistant(sessionId, turn, text) {
   }
 }
 
-/** Куда доставлять события сессии: все привязки, иначе чат владельца. */
 }

@@ -4,6 +4,10 @@
 import { escapeHtml } from '../tg/html.js'
 
 export const model = {
+/**
+ * Каталог моделей: провайдеры и их модели.
+ * @returns {Promise<{provider: string, models: string[]}[]>}
+ */
 async modelCatalog() {
   const llm = this.llm
   if (llm === undefined) return []
@@ -95,5 +99,4 @@ async applyModel(chatId, threadId, sessionId, provider, model) {
   }
 }
 
-/** Текст /cost: расход текущей сессии и суммарный. */
 }

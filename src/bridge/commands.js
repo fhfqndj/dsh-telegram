@@ -358,6 +358,14 @@ async handleCallback(callback, token) {
   }
 },
 
+/**
+ * Публикует меню команд.
+ *
+ * Telegram хранит список на сервере: default-scope видят все, language_code-scope —
+ * только носители языка. Старый бот мог оставить свой список в default scope
+ * (так было с Hermes), поэтому сначала перезаписываем default нашими командами,
+ * затем добавляем английский скоуп и чистим русский, если он остался с прошлого раза.
+ */
 async publishCommands(token) {
   const call = (params) => callWithRetry(token, 'setMyCommands', params, {
     attempts: 2,
@@ -383,6 +391,10 @@ async publishCommands(token) {
   }
 },
 
+/**
+ * Команды для конкретного чата: у chat-scope приоритет выше default,
+ * поэтому меню не зависит от того, что бот ставил раньше и что закэшировал клиент.
+ */
 async publishCommandsForChat(token, chatId) {
   try {
     // Chat-scope приоритетнее language-scope: список должен быть на языке чата,
@@ -396,6 +408,11 @@ async publishCommandsForChat(token, chatId) {
   }
 },
 
+/**
+ * Отправка по просьбе агента (инструмент telegram_send).
+ * @param {string} [text]
+ * @param {string} [file] абсолютный путь
+ */
 async sendToOwner(text, file) {
   const target = this.ownerTarget()
   if (target === undefined) throw new Error('нет привязанного чата: сначала /start')
@@ -418,20 +435,7 @@ async sendToOwner(text, file) {
   }
   if (sent.length === 0) throw new Error('нужен text или file')
   return { ok: true, sent }
-}
-
-/**
- * Публикует меню команд.
- *
- * Telegram хранит список на сервере: default-scope видят все, language_code-scope —
- * только носители языка. Старый бот мог оставить свой список в default scope
- * (так было с Hermes), поэтому сначала перезаписываем default нашими командами,
- * затем добавляем английский скоуп и чистим русский, если он остался с прошлого раза.
- */
-/**
- * Команды для конкретного чата: у chat-scope приоритет выше default,
- * поэтому меню не зависит от того, что бот ставил раньше и что закэшировал клиент.
- */,
+},
 
 ownerTarget() {
   if (this.state.ownerChatId !== undefined) return { chatId: this.state.ownerChatId, threadId: undefined }
@@ -439,9 +443,4 @@ ownerTarget() {
   return target === undefined ? undefined : { chatId: target.chatId, threadId: target.threadId }
 }
 
-/**
- * Отправка по просьбе агента (инструмент telegram_send).
- * @param {string} [text]
- * @param {string} [file] абсолютный путь
- */
 }

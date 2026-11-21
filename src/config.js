@@ -15,9 +15,9 @@ export const Config = z.object({
   enabled: z.boolean().default(true).volatile()
     .description('Опрошивать бота, пока запущен Host.'),
   ownerId: z.number().default(0).volatile()
-    .description('Telegram user id владельца. 0 — привязать при первом /start.'),
+    .description('Telegram user id владельца. 0 — бот не пускает никого (fail-closed).'),
   workspacePath: z.string().default('').volatile()
-    .description('Рабочий каталог для новых сессий и источник списка /sessions. Пусто — первый workspace.'),
+    .description('Рабочий каталог для новых сессий и источник списка /sessions. Пусто — каталог последней активной сессии.'),
   notifyMode: z.string().default('normal').volatile()
     .description('off | quiet | normal | verbose — уведомления о работе, начатой не из Telegram.'),
   allowNewSessions: z.boolean().default(true).volatile()

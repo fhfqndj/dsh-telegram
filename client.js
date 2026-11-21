@@ -47,8 +47,8 @@ window.__ModuleLoader__.load({
     const PANEL_ID = 'telegram'
     const TOKEN_REF = 'TELEGRAM_BOT_TOKEN'
     const MODES = ['off', 'quiet', 'normal', 'verbose']
-  const POSTURES = ['ask', 'trusted', 'yolo']
-  const LANGS = ['auto', 'ru', 'en']
+    const POSTURES = ['ask', 'trusted', 'yolo']
+    const LANGS = ['auto', 'ru', 'en']
     const COMMIT_DELAY_MS = 400
 
     const ru = {
@@ -64,7 +64,7 @@ window.__ModuleLoader__.load({
       workspace: 'Workspace',
       workspaceHint: 'пусто — каталог последней активной сессии',
       ownerId: 'Владелец (user id)',
-      ownerHint: 'Telegram user id владельца; пусто — привязка при первом /start',
+      ownerHint: 'Telegram user id владельца; без него бот не отвечает никому',
       ownerInvalid: 'нужно целое число больше нуля',
       notifyHint: 'Что присылать о работе, начатой вне чата',
       accessTitle: 'Доступ',
@@ -156,7 +156,7 @@ window.__ModuleLoader__.load({
       workspace: 'Workspace',
       workspaceHint: 'empty — the latest active session directory',
       ownerId: 'Owner (user id)',
-      ownerHint: 'Owner Telegram user id; empty — bind on the first /start',
+      ownerHint: 'Owner Telegram user id; without it the bot answers nobody',
       ownerInvalid: 'must be a positive integer',
       notifyHint: 'What to send about work started outside chat',
       accessTitle: 'Access',
