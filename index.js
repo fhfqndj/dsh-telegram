@@ -150,7 +150,10 @@ class TelegramBridge {
     this.stateFile = options.stateFile ?? STATE_FILE
     this.log = options.log ?? createFileLogger(path.join(STATE_DIR, 'logs'))
     /** @type {{ offset?: number, bindings: Record<string, { sessionId: string, title?: string }>, ownerId: number, ownerChatId?: number, diagnostics?: object }} */
-    this.state = { bindings: {}, notify: {}, lang: {}, ownerId: 0 }
+    // langVersion 2 — «определённый язык клиента лежит в langDetected». Файл без
+    // версии считаем старым: иначе миграция в loadState съест явный /lang после
+    // первого же рестарта (свежий файл помечается версией сразу).
+    this.state = { bindings: {}, notify: {}, lang: {}, langDetected: {}, langVersion: 2, ownerId: 0 }
     this.loaded = false
     this.saveChain = Promise.resolve()
     this.botName = undefined
