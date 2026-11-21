@@ -475,3 +475,33 @@ test('auto берёт язык клиента Telegram', async () => {
   const created = sentText(calls.filter((call) => call.method === 'sendMessage').at(-1))
   assert.match(created, /New session/, 'при auto побеждает язык клиента')
 })
+
+test('первое сообщение ставит меню на языке клиента', async () => {
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555 } })
+
+  await bridge.handleMessage({ chat: { id: 100, type: 'private' }, from: { id: 555, language_code: 'en' }, text: '/start' }, 53, 'TOKEN')
+
+  const menu = calls.filter((call) => call.method === 'setMyCommands').at(-1)
+  assert.equal(menu?.params.scope?.type, 'chat', 'меню ставится в chat-scope')
+  assert.equal(
+    menu.params.commands.find((row) => row.command === 'start').description,
+    'greeting and buttons',
+    'язык клиента учтён при первой публикации',
+  )
+})
+
+test('/lang переопубликовывает меню чата', async () => {
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555, language: 'en' } })
+
+  await bridge.handleMessage(message(555, '/start'), 54, 'TOKEN')
+  const before = calls.filter((call) => call.method === 'setMyCommands').length
+  await bridge.handleMessage(message(555, '/lang ru'), 55, 'TOKEN')
+
+  const menu = calls.filter((call) => call.method === 'setMyCommands').slice(before).at(-1)
+  assert.ok(menu !== undefined, '/lang публикует меню заново')
+  assert.equal(
+    menu.params.commands.find((row) => row.command === 'start').description,
+    'приветствие и кнопки',
+    'меню переведено после /lang',
+  )
+})

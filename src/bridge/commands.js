@@ -42,6 +42,18 @@ async handleMessage(message, updateId, token) {
     return
   }
 
+  const threadId = message.message_thread_id
+
+  // Определённый язык клиента — отдельно от явного выбора /lang: иначе он
+  // навсегда перекрывает настройку панели, как было до langVersion 2.
+  // Записываем до публикации меню: chat-scope ниже выбирает язык через langFor.
+  const langKey = this.bindingKey(chatId, threadId)
+  const detected = languageFromTelegram(message.from?.language_code)
+  if (this.state.langDetected?.[langKey] !== detected) {
+    this.state.langDetected = { ...(this.state.langDetected ?? {}), [langKey]: detected }
+    await this.saveState()
+  }
+
   // ownerChatId — адрес инициативных сообщений агента; менять его может только владелец.
   if (fromId === this.ownerId() && this.state.ownerChatId !== chatId) {
     this.state.ownerChatId = chatId
@@ -49,8 +61,6 @@ async handleMessage(message, updateId, token) {
     const token = await this.token()
     if (token !== undefined) await this.publishCommandsForChat(token, chatId)
   }
-
-  const threadId = message.message_thread_id
 
   // Ответ на вопрос агента: текст, написанный вместо кнопки.
   const answerText = String(message.text ?? '').trim()
@@ -60,14 +70,6 @@ async handleMessage(message, updateId, token) {
       await this.send(chatId, this.say(chatId, threadId, 'questionAccepted'), threadId)
       return
     }
-  }
-  // Определённый язык клиента — отдельно от явного выбора /lang: иначе он
-  // навсегда перекрывает настройку панели, как было до langVersion 2.
-  const langKey = this.bindingKey(chatId, threadId)
-  const detected = languageFromTelegram(message.from?.language_code)
-  if (this.state.langDetected?.[langKey] !== detected) {
-    this.state.langDetected = { ...(this.state.langDetected ?? {}), [langKey]: detected }
-    await this.saveState()
   }
   const incoming = await this.readIncomingMedia(message, chatId, threadId)
   if (incoming === undefined) return
@@ -241,6 +243,8 @@ async handleCommand(text, { chatId, threadId, message, fromId, token }) {
         ?? (this.langFor(chatId, threadId) === 'ru' ? 'en' : 'ru')
       this.state.lang = { ...(this.state.lang ?? {}), [this.bindingKey(chatId, threadId)]: selected }
       await this.saveState()
+      // chat-scope меню иначе останется на прежнем языке: у Telegram он важнее language-scope.
+      if (token !== undefined) await this.publishCommandsForChat(token, chatId)
       await this.send(chatId, translate(selected, 'langSet', { lang: selected }), threadId)
       return
     }
