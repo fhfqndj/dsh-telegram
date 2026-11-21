@@ -12,7 +12,7 @@
 import path from 'node:path'
 
 import { sleep } from './src/tg/client.js'
-import { botIdentity, clearWebhook, createPoller, webhookInfo } from './src/tg/poll.js'
+import { botIdentity, clearWebhook, createPoller, retryDelay, webhookInfo } from './src/tg/poll.js'
 import { createFileLogger } from './src/log.js'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { access } from './src/bridge/access.js'
@@ -172,6 +172,8 @@ class TelegramBridge {
 
   async run(signal) {
     await this.loadState()
+    /** Подряд идущие неудачные старты: пауза растёт, пока Telegram недоступен. */
+    let startupFailures = 0
     while (!signal.aborted && !this.disposed) {
       const cfg = this.cfg()
       if (!cfg.enabled) {
@@ -209,10 +211,16 @@ class TelegramBridge {
           this.pruneTimer.unref?.()
         }
         this.log.info(`start: @${me?.username ?? '?'} webhook=${info?.url ? 'set' : 'none'} owner=${this.ownerId()} workspace=${this.cfg().workspacePath || '(первый)'}`)
+        startupFailures = 0
       } catch (error) {
         this.ctx.logger.warn('telegram: startup failed: %s', String(error))
-        this.log.error(`startup: ${String(error)}`)
-        await sleep(10000)
+        const delay = retryDelay(startupFailures, { base: 5000 })
+        // Пишем не каждую попытку: при длинном обрыве файл лога иначе растёт на тысячи строк.
+        if (startupFailures === 0 || startupFailures % 10 === 0) {
+          this.log.error(`startup: ${String(error)} (попытка ${startupFailures + 1}, пауза ${Math.round(delay / 1000)} с)`)
+        }
+        startupFailures += 1
+        await sleep(delay)
         continue
       }
 

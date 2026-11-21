@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createPoller } from '../src/tg/poll.js';
+import { createPoller, retryDelay } from '../src/tg/poll.js';
 
 function fakeFetch(handler) {
   const calls = [];
@@ -85,3 +85,11 @@ test('poll: 409 не фатален, 401 останавливает', async () =
   assert.ok(seen.includes('unauthorized'));
 });
 
+
+test('backoff: пауза растёт экспоненциально и упирается в потолок', () => {
+  assert.equal(retryDelay(0), 1000, 'первая пауза — секунда');
+  assert.equal(retryDelay(3), 8000, 'четвёртая — восемь секунд');
+  assert.equal(retryDelay(20), 300_000, 'дальше — потолок пять минут');
+  assert.equal(retryDelay(0, { base: 5000 }), 5000, 'база настраивается');
+  assert.equal(retryDelay(99, { base: 5000, max: 60_000 }), 60_000, 'потолок настраивается');
+});
