@@ -419,6 +419,8 @@ async sendToOwner(text, file) {
   const token = await this.token()
   if (token === undefined) throw new Error('токен не настроен')
   // Путь проверяем до первого сетевого вызова: иначе текст уйдёт, а файл откажут.
+  // Проверка best-effort: между realpath и открытием остаётся TOCTOU-окно, а hardlink
+  // на внешний inode она не видит — для защиты от инъекции в промпт этого достаточно.
   if (typeof file === 'string' && file !== '') {
     const workspace = await this.workspacePath()
     // Инъекция в промпт не должна превращать бота в канал утечки файлов с машины.

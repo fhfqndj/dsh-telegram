@@ -77,7 +77,7 @@ npx github:fhfqndj/dsh-telegram install
 ## Разработка
 
 ```bash
-node --test        # 53 теста
+node --test        # 56 тестов
 npm pack --dry-run # состав пакета
 ```
 
