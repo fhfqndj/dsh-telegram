@@ -114,3 +114,33 @@ test('apply регистрирует панель в боковой колонк
   assert.equal(typeof icon.label, 'function')
 })
 
+
+/** Словарь панели: ключи на шестом отступе внутри блоков ru/en. */
+function panelDictionary(source) {
+  const ruStart = source.indexOf('const ru = {')
+  const enStart = source.indexOf('const en = {')
+  const stylesStart = source.indexOf('const styles')
+  const keys = (block) => [...block.matchAll(/^ {6}([A-Za-z_][A-Za-z0-9_]*):/gm)].map((match) => match[1])
+  return {
+    ru: keys(source.slice(ruStart, enStart)),
+    en: keys(source.slice(enStart, stylesStart)),
+  }
+}
+
+test('подписи панели: нет мёртвых ключей и пропущенных переводов', async () => {
+  const source = await readFile(new URL('client.js', ROOT), 'utf8')
+  const { ru, en } = panelDictionary(source)
+  assert.ok(ru.length > 50, 'словарь найден')
+  assert.deepEqual([...ru].sort(), [...en].sort(), 'ru и en совпадают по ключам')
+
+  const used = new Set([...source.matchAll(/t\('([A-Za-z_][A-Za-z0-9_]*)'\)/g)].map((match) => match[1]))
+  // Динамические подписи собираются шаблоном: lang_auto/lang_ru/lang_en, posture_ask/…
+  const dynamic = new Set(['lang_', 'posture_'])
+  const isDynamic = (key) => [...dynamic].some((prefix) => key.startsWith(prefix))
+
+  const missing = [...used].filter((key) => !ru.includes(key))
+  assert.deepEqual(missing, [], 'каждый t(...) имеет перевод')
+
+  const dead = ru.filter((key) => !used.has(key) && !isDynamic(key))
+  assert.deepEqual(dead, [], 'в словаре нет непоказанных подписей')
+})

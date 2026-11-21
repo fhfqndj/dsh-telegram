@@ -56,7 +56,6 @@ window.__ModuleLoader__.load({
       subtitle: 'Бот @BotFather: уведомления о работе, поручения из чата и переключение между сессиями.',
       panel: 'Telegram',
       connection: 'Подключение',
-      behaviour: 'Поведение',
       enabled: 'Бот включён',
       enabledHint: 'Опрашивать Telegram, пока запущен DSH',
       apiBase: 'Адрес Bot API',
@@ -71,6 +70,12 @@ window.__ModuleLoader__.load({
       notifyTitle: 'Уведомления',
       approvalsTitle: 'Подтверждения и вопросы',
       workspaceTitle: 'Рабочее пространство',
+      retentionDays: 'Хранить записи о расходе, дней',
+      retentionDaysHint: '0 — не чистить старые записи',
+      logMessages: 'Писать тексты сообщений в лог',
+      logMessagesHint: 'Выключено — в лог попадает только длина сообщения',
+      allowAnyPath: 'Разрешить файлы вне workspace',
+      allowAnyPathHint: 'telegram_send сможет отправлять любой путь; по умолчанию — только внутри workspace',
       allowNewHint: 'разрешать создавать сессии из чата',
       streamingHint: 'показывать карточку прогресса во время работы',
       lang_auto: 'auto',
@@ -92,6 +97,8 @@ window.__ModuleLoader__.load({
       richHint: 'Нативные таблицы и форматирование; при отказе сервера — обычный HTML',
       richHeadings: 'Заголовки как заголовки',
       richHeadingsHint: 'Выключено — заголовки становятся жирной строкой',
+      richTables: 'Нативные таблицы',
+      richTablesHint: 'Выключено — таблицы приходят списком, а не код-блоком',
       questions: 'Вопросы агента',
       questionsHint: 'Присылать вопросы в чат кнопками и принимать ответ текстом',
       approvals: 'Подтверждения',
@@ -113,7 +120,6 @@ window.__ModuleLoader__.load({
       tokenHint: 'Хранится в credential TELEGRAM_BOT_TOKEN, не в патче профиля',
       tokenConfigured: 'Токен сохранён',
       tokenMissing: 'Токен не задан',
-      tokenPlaceholder: '123456789:AA…',
       saveToken: 'Сохранить',
       check: 'Проверить',
       test: 'Тест',
@@ -148,7 +154,6 @@ window.__ModuleLoader__.load({
       subtitle: 'A @BotFather bot for work notifications, tasks from chat, and switching between sessions.',
       panel: 'Telegram',
       connection: 'Connection',
-      behaviour: 'Behaviour',
       enabled: 'Bot enabled',
       enabledHint: 'Poll Telegram while DSH runs',
       apiBase: 'Bot API endpoint',
@@ -163,6 +168,12 @@ window.__ModuleLoader__.load({
       notifyTitle: 'Notifications',
       approvalsTitle: 'Approvals and questions',
       workspaceTitle: 'Workspace',
+      retentionDays: 'Keep usage records, days',
+      retentionDaysHint: '0 — never prune old records',
+      logMessages: 'Write message texts to the log',
+      logMessagesHint: 'Off — only the message length is logged',
+      allowAnyPath: 'Allow files outside the workspace',
+      allowAnyPathHint: 'telegram_send may send any path; by default only inside the workspace',
       allowNewHint: 'allow creating sessions from chat',
       streamingHint: 'show a progress card while the agent works',
       lang_auto: 'auto',
@@ -184,6 +195,8 @@ window.__ModuleLoader__.load({
       richHint: 'Native tables and formatting; plain HTML when the server refuses',
       richHeadings: 'Headings as headings',
       richHeadingsHint: 'Off — headings become a bold line',
+      richTables: 'Native tables',
+      richTablesHint: 'Off — tables arrive as a list instead of a code block',
       questions: 'Agent questions',
       questionsHint: 'Send questions to the chat as buttons and accept text answers',
       approvals: 'Approvals',
@@ -205,7 +218,6 @@ window.__ModuleLoader__.load({
       tokenHint: 'Kept in the TELEGRAM_BOT_TOKEN credential, not in the profile patch',
       tokenConfigured: 'Token stored',
       tokenMissing: 'No token yet',
-      tokenPlaceholder: '123456789:AA…',
       saveToken: 'Save',
       check: 'Check',
       test: 'Test',
@@ -438,22 +450,23 @@ window.__ModuleLoader__.load({
     }
 
     function ModeField(props) {
-      if (has.SegmentedControl) {
-        return h(SegmentedControl, {
-          id: props.id,
-          label: props.label,
-          value: props.value,
-          options: MODES.map((mode) => ({ value: mode, label: props.labels?.[mode] ?? mode })),
-          onChange: props.onChange,
-        })
-      }
-      return h(Row, { label: props.label },
-        h('select', {
-          className: 'dsh-tg__input',
-          value: props.value,
-          'aria-label': props.label,
-          onChange: (event) => props.onChange(event.target.value),
-        }, MODES.map((mode) => h('option', { key: mode, value: mode }, mode))))
+      const control = has.SegmentedControl
+        ? h(SegmentedControl, {
+            id: props.id,
+            label: props.label,
+            value: props.value,
+            options: MODES.map((mode) => ({ value: mode, label: props.labels?.[mode] ?? mode })),
+            onChange: props.onChange,
+          })
+        : h(Row, { label: props.label },
+            h('select', {
+              className: 'dsh-tg__input',
+              value: props.value,
+              'aria-label': props.label,
+              onChange: (event) => props.onChange(event.target.value),
+            }, MODES.map((mode) => h('option', { key: mode, value: mode }, mode))))
+      const hint = props.hints?.[props.value]
+      return hint === undefined ? control : h('div', null, control, h('span', { className: 'dsh-tg__hint' }, hint))
     }
 
     function ActionButton(props) {
@@ -742,6 +755,10 @@ window.__ModuleLoader__.load({
                   },
                   onReset: () => resetField('ownerId'),
                 }),
+
+                Number(value.ownerId ?? 0) <= 0
+                  ? h('span', { className: 'dsh-tg__hint', role: 'status' }, t('noOwner'))
+                  : null,
               )),
 
             h(Section, { title: t('accessTitle') },
@@ -799,6 +816,12 @@ window.__ModuleLoader__.load({
                       id: 'dsh-telegram-notify',
                       label: t('notify'),
                       labels: { off: t('mode_off'), quiet: t('mode_quiet'), normal: t('mode_normal'), verbose: t('mode_verbose') },
+                      hints: {
+                        off: t('modeHint_off'),
+                        quiet: t('modeHint_quiet'),
+                        normal: t('modeHint_normal'),
+                        verbose: t('modeHint_verbose'),
+                      },
                       value: MODES.includes(value.notifyMode) ? value.notifyMode : 'normal',
                       onChange: (next) => { void write('notifyMode', next) },
                     }))),
@@ -827,6 +850,15 @@ window.__ModuleLoader__.load({
                     onChange: (next) => { void write('richMessages', next) },
                   })),
 
+                h(Row, { label: t('richTables'), hint: t('richTablesHint') },
+                  h(Toggle, {
+                    checked: value.richTables !== false,
+                    label: t('richTables'),
+                    'aria-checked': value.richTables !== false,
+                    disabled: value.richMessages === false,
+                    onChange: (next) => { void write('richTables', next) },
+                  })),
+
                 h(Row, { label: t('richHeadings'), hint: t('richHeadingsHint') },
                   h(Toggle, {
                     checked: value.richHeadings === true,
@@ -853,6 +885,30 @@ window.__ModuleLoader__.load({
                     options: POSTURES.map((posture) => ({ value: posture, label: t(`posture_${posture}`) })),
                     onChange: (next) => { void write('approvalsPosture', next) },
                   })),
+
+                h(TextField, {
+                  id: 'dsh-telegram-approvals-allow',
+                  label: t('approvalsAllow'),
+                  hint: t('approvalsAllowHint'),
+                  value: String(value.approvalsAllow ?? ''),
+                  overridden: Object.hasOwn(user, 'approvalsAllow'),
+                  overriddenLabel: t('overridden'),
+                  resetLabel: t('reset'),
+                  onCommit: (text) => { void write('approvalsAllow', text) },
+                  onReset: () => resetField('approvalsAllow'),
+                }),
+
+                h(TextField, {
+                  id: 'dsh-telegram-approvals-deny',
+                  label: t('approvalsDeny'),
+                  hint: t('approvalsDenyHint'),
+                  value: String(value.approvalsDeny ?? ''),
+                  overridden: Object.hasOwn(user, 'approvalsDeny'),
+                  overriddenLabel: t('overridden'),
+                  resetLabel: t('reset'),
+                  onCommit: (text) => { void write('approvalsDeny', text) },
+                  onReset: () => resetField('approvalsDeny'),
+                }),
 
                 h(Row, { label: t('questions'), hint: t('questionsHint') },
                   h(Toggle, {
@@ -893,6 +949,44 @@ window.__ModuleLoader__.load({
                   onCommit: (text) => { void write('apiBase', text) },
                   onReset: () => resetField('apiBase'),
                 }),
+
+                h(TextField, {
+                  id: 'dsh-telegram-retention',
+                  label: t('retentionDays'),
+                  hint: t('retentionDaysHint'),
+                  numeric: true,
+                  value: value.retentionDays === undefined ? '' : String(value.retentionDays),
+                  overridden: Object.hasOwn(user, 'retentionDays'),
+                  overriddenLabel: t('overridden'),
+                  resetLabel: t('reset'),
+                  onCommit: (text) => {
+                    const trimmed = text.trim()
+                    if (trimmed === '') {
+                      void form.unset('retentionDays').catch(() => {})
+                      return
+                    }
+                    const days = Number(trimmed)
+                    if (!Number.isInteger(days) || days < 0) return
+                    void write('retentionDays', days)
+                  },
+                  onReset: () => resetField('retentionDays'),
+                }),
+
+                h(Row, { label: t('logMessages'), hint: t('logMessagesHint') },
+                  h(Toggle, {
+                    checked: value.logMessages === true,
+                    label: t('logMessages'),
+                    'aria-checked': value.logMessages === true,
+                    onChange: (next) => { void write('logMessages', next) },
+                  })),
+
+                h(Row, { label: t('allowAnyPath'), hint: t('allowAnyPathHint') },
+                  h(Toggle, {
+                    checked: value.allowAnyPath === true,
+                    label: t('allowAnyPath'),
+                    'aria-checked': value.allowAnyPath === true,
+                    onChange: (next) => { void write('allowAnyPath', next) },
+                  })),
               ))
           )
         }
@@ -902,7 +996,8 @@ window.__ModuleLoader__.load({
             h('style', null, styles),
             h('div', { className: 'dsh-tg__inner' },
               h('div', { className: 'dsh-tg__head' },
-                h('h1', { className: 'dsh-tg__title' }, t('title'))),
+                h('h1', { className: 'dsh-tg__title' }, t('title')),
+                h('p', { className: 'dsh-tg__subtitle' }, t('subtitle'))),
               h(Body)))
         }
 
