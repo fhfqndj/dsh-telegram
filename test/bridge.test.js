@@ -514,6 +514,7 @@ test('isPathInside: обход через .. не проходит', () => {
   assert.equal(isPathInside('/w', '/etc/hosts'), false);
   assert.equal(isPathInside('/w', '/wsub/x'), false);
   assert.equal(isPathInside('/w', '/w'), false, 'сам каталог — не файл');
+  assert.equal(isPathInside('/w', '/w/..foo'), true, 'имя с двумя точками — обычное имя');
   assert.equal(isPathInside('', '/w/a.txt'), false);
 });
 
@@ -535,4 +536,29 @@ test('telegram_send: allowAnyPath разрешает файл вне workspace',
   const result = await bridge.sendToOwner('', file);
   assert.equal(result.ok, true);
   assert.ok(calls.some((call) => call.method === 'sendDocument'), 'файл ушёл документом');
+});
+
+test('telegram_send: отказ по пути не отправляет даже текст', async () => {
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555 } });
+  await bridge.handleMessage(message(555, '/start'), 61, 'TOKEN');
+  const before = calls.length;
+
+  await assert.rejects(bridge.sendToOwner('текст задачи', '/etc/hosts'), /outside the workspace/);
+  assert.equal(calls.length, before, 'ни одного сетевого вызова до проверки пути');
+});
+
+test('telegram_send: symlink наружу не обходит проверку', async () => {
+  const { mkdir, symlink } = await import('node:fs/promises');
+  const root = path.join(tmpdir(), `dsh-tg-ws-${process.pid}-${Date.now()}`);
+  const outside = path.join(tmpdir(), `dsh-tg-out-${process.pid}-${Date.now()}`);
+  await mkdir(root, { recursive: true });
+  await mkdir(outside, { recursive: true });
+  await writeFile(path.join(outside, 'secret.txt'), 'secret');
+  await symlink(outside, path.join(root, 'link'));
+
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555, workspacePath: root } });
+  await bridge.handleMessage(message(555, '/start'), 62, 'TOKEN');
+
+  await assert.rejects(bridge.sendToOwner('', path.join(root, 'link', 'secret.txt')), /outside the workspace/);
+  assert.equal(calls.filter((call) => call.method === 'sendDocument').length, 0, 'файл не отправлен');
 });

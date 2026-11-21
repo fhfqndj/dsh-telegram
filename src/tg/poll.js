@@ -114,6 +114,8 @@ export function createPoller(options) {
             baseUrl: options.baseUrl,
             signal,
           })
+          // Опрос прошёл: даже если обработчик упал, сеть жива и пауза сбрасывается.
+          failures = 0
           if (Array.isArray(updates) && updates.length > 0) {
             const done = await processBatch(updates)
             if (!done) {
@@ -121,7 +123,6 @@ export function createPoller(options) {
               continue
             }
           }
-          failures = 0
           onEvent({ kind: 'polling' })
         } catch (error) {
           if (stopped()) break
@@ -141,12 +142,16 @@ export function createPoller(options) {
               continue
             }
             onEvent({ kind: 'error', error })
-            await sleep(retryDelay(failures, { base: failureDelayMs }))
+            const delay = retryDelay(failures, { base: failureDelayMs })
+            onEvent({ kind: 'retry', failures, delay })
+            await sleep(delay)
             failures += 1
             continue
           }
           onEvent({ kind: 'error', error })
-          await sleep(retryDelay(failures, { base: failureDelayMs }))
+          const delay = retryDelay(failures, { base: failureDelayMs })
+          onEvent({ kind: 'retry', failures, delay })
+          await sleep(delay)
           failures += 1
         }
       }

@@ -93,3 +93,28 @@ test('backoff: пауза растёт экспоненциально и упи�
   assert.equal(retryDelay(0, { base: 5000 }), 5000, 'база настраивается');
   assert.equal(retryDelay(99, { base: 5000, max: 60_000 }), 60_000, 'потолок настраивается');
 });
+
+test('backoff: успешный опрос сбрасывает счётчик даже при упавшем обработчике', async () => {
+  const events = [];
+  let call = 0;
+  const fetchImpl = async () => {
+    call += 1;
+    if (call === 2) return okResponse([{ update_id: 1, message: { text: 'x' } }]);
+    throw new Error('network down');
+  };
+
+  const poller = createPoller({
+    token: 'T',
+    fetchImpl,
+    failureDelayMs: 1,
+    onUpdate: () => { throw new Error('handler'); },
+    onEvent: (event) => events.push(event),
+    isStopped: () => events.filter((event) => event.kind === 'retry').length >= 2,
+  });
+  await poller.start();
+
+  const retries = events.filter((event) => event.kind === 'retry');
+  assert.equal(retries.length, 2, 'две паузы после сетевых ошибок');
+  assert.equal(retries[0].delay, 1, 'первая пауза — база');
+  assert.equal(retries[1].delay, 1, 'после успешного опроса счётчик сброшен; без сброса было бы 2');
+});
