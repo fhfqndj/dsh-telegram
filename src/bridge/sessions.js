@@ -9,6 +9,14 @@ import path from 'node:path'
 import { SESSION_BUTTON_TTL_MS, extractText } from './kernel.js'
 
 export const sessions = {
+/**
+ * Каталог для новых сессий и список /sessions.
+ *
+ * Явный workspacePath важнее всего. Пустое значение раньше брало первый
+ * зарегистрированный workspace — а это может быть чужой проект, поэтому
+ * теперь берём каталог последней активной сессии, и только если сессий нет,
+ * первый зарегистрированный.
+ */
 async workspacePath() {
   const configured = this.cfg().workspacePath
   if (configured !== '') return configured

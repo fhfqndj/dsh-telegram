@@ -99,11 +99,6 @@ async typing(chatId, threadId) {
   }, { baseUrl: this.apiBase() }).catch(() => {})
 },
 
-/**
- * Подтверждение инструмента из Telegram. Возвращает исход для approval-seam:
- * allowed-once / rejected / cancelled / unavailable. Без привязанного чата
- * уступает следующему ответчику (Web UI).
- */
 async statusText(chatId, threadId) {
   const cfg = this.cfg()
   const say = (key, params) => this.say(chatId, threadId, key, params)

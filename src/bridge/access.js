@@ -43,14 +43,6 @@ async bind(chatId, threadId, sessionId) {
   await this.saveState()
 },
 
-/**
- * Каталог для новых сессий и список /sessions.
- *
- * Явный workspacePath важнее всего. Пустое значение раньше брало первый
- * зарегистрированный workspace — а это может быть чужой проект, поэтому
- * теперь берём каталог последней активной сессии, и только если сессий нет,
- * первый зарегистрированный.
- */
 boundChats(sessionId) {
   const chats = []
   for (const [key, binding] of Object.entries(this.state.bindings)) {
@@ -90,5 +82,4 @@ rememberAssistant(sessionId, turn, text) {
   }
 }
 
-/** Куда доставлять события сессии: все привязки, иначе чат владельца. */
 }
