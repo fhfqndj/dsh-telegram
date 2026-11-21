@@ -61,9 +61,12 @@ async handleMessage(message, updateId, token) {
       return
     }
   }
+  // Определённый язык клиента — отдельно от явного выбора /lang: иначе он
+  // навсегда перекрывает настройку панели, как было до langVersion 2.
   const langKey = this.bindingKey(chatId, threadId)
-  if (this.state.lang?.[langKey] === undefined) {
-    this.state.lang = { ...(this.state.lang ?? {}), [langKey]: languageFromTelegram(message.from?.language_code) }
+  const detected = languageFromTelegram(message.from?.language_code)
+  if (this.state.langDetected?.[langKey] !== detected) {
+    this.state.langDetected = { ...(this.state.langDetected ?? {}), [langKey]: detected }
     await this.saveState()
   }
   const incoming = await this.readIncomingMedia(message, chatId, threadId)
