@@ -378,8 +378,10 @@ async publishCommands(token) {
 
 async publishCommandsForChat(token, chatId) {
   try {
+    // Chat-scope приоритетнее language-scope: список должен быть на языке чата,
+    // иначе английский набор из default scope в этом чате никогда не покажется.
     await callWithRetry(token, 'setMyCommands', {
-      commands: botCommands('ru'),
+      commands: botCommands(this.langFor(chatId)),
       scope: { type: 'chat', chat_id: chatId },
     }, { attempts: 2, baseUrl: this.apiBase() })
   } catch (error) {

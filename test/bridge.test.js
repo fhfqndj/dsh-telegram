@@ -394,3 +394,14 @@ test('отмена и ошибки не ломают обработчик', asyn
   controller.abort()
   assert.deepEqual(await pending, { answers: [{ id: 'q5', selected: [] }] })
 })
+
+test('меню команд в чате публикуется на его языке', async () => {
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555, language: 'en' } })
+
+  await bridge.handleMessage(message(555, '/start'), 47, 'TOKEN')
+
+  const menu = calls.filter((call) => call.method === 'setMyCommands').at(-1)
+  assert.equal(menu?.params.scope?.type, 'chat', 'меню ставится в chat-scope')
+  const start = menu.params.commands.find((row) => row.command === 'start')
+  assert.equal(start.description, 'greeting and buttons', 'описание на языке чата')
+})
