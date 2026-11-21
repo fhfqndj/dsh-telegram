@@ -5,12 +5,14 @@ isAllowed(fromId, owner = this.ownerId()) {
   return this.cfg().allowedUsers.includes(fromId)
 },
 
+/** Чат замьючен: ответы и карточки не идут, вопросы и подтверждения — идут. */
 muted(chatId, threadId) {
   const flags = this.state.mute
   if (flags === undefined || flags === null) return false
   return flags[this.bindingKey(chatId, threadId)] === true
 },
 
+/** Включены ли уведомления в этом чате. */
 notifyEnabled(chatId, threadId) {
   const flags = this.state.notify
   if (flags === undefined || flags === null) return false

@@ -204,11 +204,9 @@ async stopSession(chatId, threadId) {
       error: escapeHtml(String(error?.message ?? error)),
     }), threadId)
   }
-}
+},
 
-
-/** Все сессии без выбора workspace: используется и списком, и фолбэком workspace. */,
-
+/** Все сессии без выбора workspace: используется и списком, и фолбэком workspace. */
 async listAllSessions() {
   try {
     const value = await this.ctx.sessionController.list({}, this.signal())
@@ -418,7 +416,4 @@ async isWorkspaceSession(sessionId) {
   }
   return this.workspaceCache.ids.has(sessionId)
 }
-
-/** Включены ли уведомления в этом чате. */
-/** Чат замьючен: ответы и карточки не идут, вопросы и подтверждения — идут. */
 }

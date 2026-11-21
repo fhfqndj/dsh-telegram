@@ -55,7 +55,6 @@ usageOf(sessionId) {
 },
 
 /** Текст /cost: расход текущей сессии и суммарный. */
-
 async costText(chatId, threadId) {
   const say = (key, params) => this.say(chatId, threadId, key, params)
   const binding = this.bindingFor(chatId, threadId)
