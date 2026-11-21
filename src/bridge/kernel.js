@@ -5,6 +5,7 @@
  */
 
 import os from 'node:os'
+import { realpath } from 'node:fs/promises'
 import path from 'node:path'
 
 /** Предел текста одного сообщения: Telegram режет на 4096, оставляем запас. */
@@ -45,6 +46,31 @@ export function matchesTool(name, pattern) {
   if (!value.includes('*')) return name === value || name.startsWith(`${value}_`)
   const regex = new RegExp(`^${value.split('*').map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`)
   return regex.test(name)
+}
+
+/**
+ * Лежит ли файл внутри каталога: сравниваем после resolve, иначе `..` обходит проверку.
+ * Границу `..` сравниваем по компоненту: `..foo` — обычное имя файла внутри каталога.
+ */
+export function isPathInside(root, target) {
+  if (typeof root !== 'string' || root === '') return false
+  if (typeof target !== 'string' || target === '') return false
+  const relative = path.relative(path.resolve(root), path.resolve(target))
+  return relative !== '' && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)
+}
+
+/**
+ * То же, но с раскрытием symlink: ссылка из workspace наружу не считается «внутри».
+ * Если пути ещё нет (ENOENT), границу проверит `stat` в sendDocument.
+ */
+export async function isPathInsideReal(root, target) {
+  if (!isPathInside(root, target)) return false
+  try {
+    const [base, resolved] = await Promise.all([realpath(root), realpath(target)])
+    return isPathInside(base, resolved)
+  } catch (error) {
+    return error?.code === 'ENOENT'
+  }
 }
 
 /** Текст из AssistantMessage: склеивает текстовые части, игнорируя остальные. */

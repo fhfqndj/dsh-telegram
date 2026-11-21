@@ -40,6 +40,8 @@ export const Config = z.object({
     .description('Инструменты, которые отклоняются сразу, через запятую.'),
   retentionDays: z.number().default(30).volatile()
     .description('Сколько дней хранить записи о расходе токенов и моделях сессий (0 — не чистить).'),
+  allowAnyPath: z.boolean().default(false).volatile()
+    .description('Разрешить telegram_send отправлять файлы вне workspace.'),
   logMessages: z.boolean().default(false).volatile()
     .description('Писать в лог тексты сообщений (по умолчанию только длина).'),
   questions: z.boolean().default(true).volatile()
@@ -84,6 +86,7 @@ export function readConfig(config) {
     approvals: field(config.approvals) !== false,
     questions: field(config.questions) !== false,
     retentionDays: Number.isFinite(field(config.retentionDays)) ? Number(field(config.retentionDays)) : 30,
+    allowAnyPath: field(config.allowAnyPath) === true,
     logMessages: field(config.logMessages) === true,
     approvalsPosture: ['ask', 'trusted', 'yolo'].includes(field(config.approvalsPosture))
       ? field(config.approvalsPosture)

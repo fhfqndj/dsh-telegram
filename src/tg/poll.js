@@ -13,6 +13,23 @@
 import { TelegramError, callWithRetry, sleep } from './client.js'
 
 const DEFAULT_ALLOWED_UPDATES = ['message', 'callback_query']
+
+/**
+ * Пауза перед повтором: экспонента от base до max.
+ *
+ * Потолок в пять минут: Telegram в обрыве лежит часами, и повтор каждую секунду
+ * только забивает лог (в проде набегало ~1200 строк за 11 часов).
+ *
+ * @param {number} attempt номер подряд идущей ошибки, с нуля
+ * @param {{ base?: number, max?: number }} [options]
+ * @returns {number} миллисекунды
+ */
+export function retryDelay(attempt, options = {}) {
+  const base = options.base ?? 1000
+  const max = options.max ?? 300_000
+  const power = Math.min(Math.max(0, Math.floor(attempt ?? 0)), 20)
+  return Math.min(max, base * 2 ** power)
+}
 const LONG_POLL_TIMEOUT_MS = 40_000
 const MAX_ATTEMPTS_PER_UPDATE = 3
 
@@ -41,6 +58,8 @@ export function createPoller(options) {
   /** @type {Map<number, number>} попытки обработки одного апдейта */
   const attempts = new Map()
   let running = false
+  /** Подряд идущие неудачные опросы: по нему считается пауза. */
+  let failures = 0
 
   const stopped = () => local.signal.aborted || externalStop()
 
@@ -95,6 +114,8 @@ export function createPoller(options) {
             baseUrl: options.baseUrl,
             signal,
           })
+          // Опрос прошёл: даже если обработчик упал, сеть жива и пауза сбрасывается.
+          failures = 0
           if (Array.isArray(updates) && updates.length > 0) {
             const done = await processBatch(updates)
             if (!done) {
@@ -121,11 +142,17 @@ export function createPoller(options) {
               continue
             }
             onEvent({ kind: 'error', error })
-            await sleep(failureDelayMs)
+            const delay = retryDelay(failures, { base: failureDelayMs })
+            onEvent({ kind: 'retry', failures, delay })
+            await sleep(delay)
+            failures += 1
             continue
           }
           onEvent({ kind: 'error', error })
-          await sleep(failureDelayMs)
+          const delay = retryDelay(failures, { base: failureDelayMs })
+          onEvent({ kind: 'retry', failures, delay })
+          await sleep(delay)
+          failures += 1
         }
       }
     } finally {

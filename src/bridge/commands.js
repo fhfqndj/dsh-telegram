@@ -8,7 +8,7 @@ import { sendDocument } from '../tg/files.js'
 import { escapeHtml } from '../tg/html.js'
 import { webhookInfo } from '../tg/poll.js'
 import path from 'node:path'
-import { MAX_TEXT } from './kernel.js'
+import { MAX_TEXT, isPathInsideReal } from './kernel.js'
 
 export const commands = {
 async handleMessage(message, updateId, token) {
@@ -418,6 +418,17 @@ async sendToOwner(text, file) {
   if (target === undefined) throw new Error('нет привязанного чата: сначала /start')
   const token = await this.token()
   if (token === undefined) throw new Error('токен не настроен')
+  // Путь проверяем до первого сетевого вызова: иначе текст уйдёт, а файл откажут.
+  // Проверка best-effort: между realpath и открытием остаётся TOCTOU-окно, а hardlink
+  // на внешний inode она не видит — для защиты от инъекции в промпт этого достаточно.
+  if (typeof file === 'string' && file !== '') {
+    const workspace = await this.workspacePath()
+    // Инъекция в промпт не должна превращать бота в канал утечки файлов с машины.
+    if (!this.cfg().allowAnyPath && !(await isPathInsideReal(workspace, file))) {
+      throw new Error(`file is outside the workspace (${workspace}); owner can allow any path in the Telegram panel`)
+    }
+  }
+
   const sent = []
   if (typeof text === 'string' && text.trim() !== '') {
     await this.deliverAnswer(target, text.trim())
