@@ -423,4 +423,18 @@ test('сохранённый язык прошедшей версии не пе�
   await bridge.handleMessage(message(555, '/status'), 46, 'TOKEN')
   const status = sentText(calls.filter((call) => call.method === 'sendMessage').at(-1))
   assert.match(status, /Notifications/, 'старое состояние не держит русский навсегда')
+
+test('/doctor присылает диагностику, а не падает', async () => {
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555 } })
+
+  await bridge.handleMessage(message(555, '/doctor'), 38, 'TOKEN')
+
+  assert.ok(
+    calls.some((call) => call.method === 'getWebhookInfo'),
+    'диагностика спрашивает webhook',
+  )
+  const reply = calls.map(sentText).find((text) => text.includes('webhook:'))
+  assert.ok(reply !== undefined, 'диагностика ушла в чат')
+  assert.match(reply, /poll: on/)
+  assert.match(reply, /offset:/)
 })
