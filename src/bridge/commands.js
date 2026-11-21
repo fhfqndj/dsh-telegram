@@ -85,7 +85,7 @@ async handleMessage(message, updateId, token) {
   await this.forwardTask(chatId, threadId, text, updateId, incoming.parts)
 },
 
-async handleCommand(text, { chatId, threadId, message, fromId }) {
+async handleCommand(text, { chatId, threadId, message, fromId, token }) {
   // Аргументы не логируем: там бывает код подключения и текст задачи.
   this.log.info(`command ${text.split(/\s+/)[0].slice(0, 32)}`)
   const [rawCommand, ...rest] = text.split(/\s+/)
