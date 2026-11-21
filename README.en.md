@@ -15,7 +15,7 @@ npx dsh-telegram-connect status           # profile, patch, secrets, log
 npx dsh-telegram-connect uninstall        # remove it
 ```
 
-Install straight from the repository while the npm package is not published:
+Install straight from the repository (when you need the `master` build):
 
 ```bash
 npx github:fhfqndj/dsh-telegram install

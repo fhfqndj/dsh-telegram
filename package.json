@@ -1,6 +1,6 @@
 {
   "name": "dsh-telegram-connect",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": false,
   "type": "module",
   "description": "Telegram bridge for DeepSeek Harness: Bot API polling, tasks from chat, session switching, approvals and agent questions as buttons, token cost, and a native sidebar panel.",
