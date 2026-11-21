@@ -61,7 +61,9 @@ async loadState() {
       this.state = { bindings: {}, notify: {}, lang: {}, ownerId: 0, ...raw }
       // До langVersion 2 определённый язык клиента лежал в state.lang вместе
       // с явным /lang. Переносим его в langDetected, иначе настройка панели
-      // останется перекрытой у всех, кто хоть раз писал боту.
+      // останется перекрытой у всех, кто хоть раз писал боту. Отличить явный
+      // выбор от определённого в старом файле нельзя — выбранный вручную /lang
+      // придётся задать заново, это оговорено в PR.
       if ((Number(raw.langVersion) || 0) < 2) {
         this.state.langDetected = { ...(raw.lang ?? {}), ...(this.state.langDetected ?? {}) }
         this.state.lang = {}

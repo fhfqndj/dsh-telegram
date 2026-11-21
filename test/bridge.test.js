@@ -423,6 +423,7 @@ test('сохранённый язык прошедшей версии не пе�
   await bridge.handleMessage(message(555, '/status'), 46, 'TOKEN')
   const status = sentText(calls.filter((call) => call.method === 'sendMessage').at(-1))
   assert.match(status, /Notifications/, 'старое состояние не держит русский навсегда')
+})
 
 test('/doctor присылает диагностику, а не падает', async () => {
   const { bridge, calls } = makeHarness({ config: { ownerId: 555 } })
@@ -437,4 +438,29 @@ test('/doctor присылает диагностику, а не падает', 
   assert.ok(reply !== undefined, 'диагностика ушла в чат')
   assert.match(reply, /poll: on/)
   assert.match(reply, /offset:/)
+})
+
+test('явный /lang переживает рестарт', async () => {
+  const stateFile = path.join(tmpdir(), `dsh-telegram-lang3-${process.pid}-${Date.now()}.json`)
+  const first = makeHarness({ stateFile, config: { ownerId: 555, language: 'en' } })
+  await first.bridge.handleMessage(message(555, '/lang ru'), 50, 'TOKEN')
+  await first.bridge.saveState()
+
+  // Рестарт с той же настройкой панели: явный выбор должен остаться явным.
+  const second = makeHarness({ stateFile, config: { ownerId: 555, language: 'en' } })
+  second.bridge.loaded = false
+  await second.bridge.loadState()
+
+  await second.bridge.handleMessage(message(555, '/status'), 51, 'TOKEN')
+  const status = sentText(second.calls.filter((call) => call.method === 'sendMessage').at(-1))
+  assert.match(status, /Уведомления/, 'явный /lang важнее настройки панели и после рестарта')
+})
+
+test('auto берёт язык клиента Telegram', async () => {
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555 } })
+
+  await bridge.handleMessage({ chat: { id: 100, type: 'private' }, from: { id: 555, language_code: 'en' }, text: 'fix build' }, 52, 'TOKEN')
+
+  const created = sentText(calls.filter((call) => call.method === 'sendMessage').at(-1))
+  assert.match(created, /New session/, 'при auto побеждает язык клиента')
 })
