@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { tmpdir } from 'node:os'
+import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { TelegramBridge } from '../index.js'
@@ -393,4 +394,33 @@ test('отмена и ошибки не ломают обработчик', asyn
   await new Promise((resolve) => setTimeout(resolve, 20))
   controller.abort()
   assert.deepEqual(await pending, { answers: [{ id: 'q5', selected: [] }] })
+})
+
+test('язык из панели действует, а /lang перекрывает его', async () => {
+  const { bridge, calls } = makeHarness({ config: { ownerId: 555, language: 'en' } })
+
+  // Клиент русский, но в панели выбран английский: побеждает панель.
+  await bridge.handleMessage({ chat: { id: 100, type: 'private' }, from: { id: 555, language_code: 'ru' }, text: 'почини сборку' }, 43, 'TOKEN')
+  const created = sentText(calls.filter((call) => call.method === 'sendMessage').at(-1))
+  assert.match(created, /New session/, 'ответ на en из панели')
+
+  // Явный /lang перекрывает настройку панели.
+  await bridge.handleMessage(message(555, '/lang ru'), 44, 'TOKEN')
+  await bridge.handleMessage(message(555, '/status'), 45, 'TOKEN')
+  const status = sentText(calls.filter((call) => call.method === 'sendMessage').at(-1))
+  assert.match(status, /Уведомления/, 'после /lang ru ответ на ru')
+})
+
+test('сохранённый язык прошедшей версии не перекрывает настройку панели', async () => {
+  const stateFile = path.join(tmpdir(), `dsh-telegram-lang-${process.pid}-${Date.now()}.json`)
+  // Так состояние выглядело до правки: определённый язык клиента лежал в state.lang.
+  await writeFile(stateFile, JSON.stringify({ lang: { '100:0': 'ru' }, ownerId: 555 }))
+
+  const { bridge, calls } = makeHarness({ stateFile, config: { ownerId: 555, language: 'en' } })
+  bridge.loaded = false
+  await bridge.loadState()
+
+  await bridge.handleMessage(message(555, '/status'), 46, 'TOKEN')
+  const status = sentText(calls.filter((call) => call.method === 'sendMessage').at(-1))
+  assert.match(status, /Notifications/, 'старое состояние не держит русский навсегда')
 })

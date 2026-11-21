@@ -22,13 +22,20 @@ cfg() {
   return readConfig(this.config)
 },
 
-/** Язык чата: явный выбор, иначе настройка, иначе язык клиента Telegram. */
+/**
+ * Язык чата: явный выбор, иначе настройка панели, иначе язык клиента Telegram.
+ *
+ * Определённый язык клиента лежит в langDetected: раньше он писался в state.lang,
+ * где /lang хранит явный выбор, и настройка панели не действовала никогда.
+ */
 langFor(chatId, threadId, telegramCode) {
   const key = this.bindingKey(chatId, threadId)
   const explicit = this.state.lang?.[key]
   if (explicit !== undefined) return explicit
   const configured = this.cfg().language
   if (configured === 'ru' || configured === 'en') return configured
+  const detected = this.state.langDetected?.[key]
+  if (detected !== undefined) return detected
   return languageFromTelegram(telegramCode)
 },
 
@@ -52,6 +59,15 @@ async loadState() {
       // Берём файл целиком: состояние пишут и usage, и model, и mute —
       // белый список полей раньше терял их при каждом рестарте.
       this.state = { bindings: {}, notify: {}, lang: {}, ownerId: 0, ...raw }
+      // До langVersion 2 определённый язык клиента лежал в state.lang вместе
+      // с явным /lang. Переносим его в langDetected, иначе настройка панели
+      // останется перекрытой у всех, кто хоть раз писал боту.
+      if ((Number(raw.langVersion) || 0) < 2) {
+        this.state.langDetected = { ...(raw.lang ?? {}), ...(this.state.langDetected ?? {}) }
+        this.state.lang = {}
+        this.state.langVersion = 2
+        this.stateMigrated = true
+      }
     }
   } catch (error) {
     if (error?.code !== 'ENOENT') {
@@ -59,6 +75,10 @@ async loadState() {
     }
   }
   await chmod(this.stateFile, 0o600).catch(() => {})
+  if (this.stateMigrated === true) {
+    this.stateMigrated = false
+    await this.saveState()
+  }
 },
 
 /**
