@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Telegram",
+    "description": "Bot API bridge: the agent writes to you on task completion, you send tasks from chat, and /sessions switches between sessions. Adds a Telegram panel to the sidebar next to automations; the bot token is read from the TELEGRAM_BOT_TOKEN credential."
+  }
+}

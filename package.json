@@ -1,0 +1,74 @@
+{
+  "name": "dsh-telegram-connect",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "description": "Telegram bridge for DeepSeek Harness: Bot API polling, tasks from chat, session switching, approvals and agent questions as buttons, token cost, and a native sidebar panel.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "README.en.md",
+    "README.md",
+    "SECURITY.md",
+    "bin",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "index.js",
+    "locale/*.json",
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "pack:check": "npm pack --dry-run",
+    "prepublishOnly": "node --test"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-tools": "^0.2.2-rc.5",
+    "@deepseek-ai/schemastery": "^3.19.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fhfqndj/dsh-telegram.git"
+  },
+  "homepage": "https://github.com/fhfqndj/dsh-telegram#readme",
+  "bugs": {
+    "url": "https://github.com/fhfqndj/dsh-telegram/issues"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "deepseek",
+    "harness",
+    "dsh",
+    "bridge",
+    "plugin"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "dsh-telegram-connect": "./bin/cli.mjs"
+  }
+}

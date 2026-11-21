@@ -1,0 +1,5 @@
+# Строка Loader'а этого бандла: Host-плагин с ботом и Client-часть с панелью
+# живут в одном пакете.
+- insert:
+    - id: telegram
+      name: dsh-telegram-connect

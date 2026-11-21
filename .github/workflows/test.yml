@@ -1,0 +1,50 @@
+name: test
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  node-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24', '26']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node --test
+      - run: npm audit --audit-level=high
+        continue-on-error: true
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: tarball smoke
+        run: |
+          npm pack --json > pack.json
+          node -e "const p=require('./pack.json')[0]; if(!p.files.some(f=>f.path==='LICENSE')) throw new Error('LICENSE missing'); if(!p.files.some(f=>f.path==='index.js')) throw new Error('index.js missing'); console.log('files:', p.files.length, 'size:', p.size)"
+      - name: install into a clean profile
+        run: |
+          export DSH_HOME="$(mktemp -d)"
+          mkdir -p "$DSH_HOME/profiles/smoke"
+          printf -- '- id: other\n  name: "x"\n  config:\n    a: 1\n' > "$DSH_HOME/profiles/smoke/cordis.patch.yml"
+          node bin/cli.mjs install --profile smoke
+          grep -q 'id: telegram' "$DSH_HOME/profiles/smoke/cordis.patch.yml"
+          node bin/cli.mjs status --profile smoke | grep -q 'прописан'
+          echo "install smoke ok"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-telegram-tarball
+          path: '*.tgz'
