@@ -9,23 +9,12 @@
  * @module dsh-telegram
  */
 
-import os from 'node:os'
 import path from 'node:path'
-import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 
-import { callWithRetry, sleep } from './src/tg/client.js'
-import {
-  downgradeHeadings, escapeHtml, hardLineBreaks, markdownToHtml, normalizeBlocks, splitHtml,
-  tablesToList,
-} from './src/tg/html.js'
+import { sleep } from './src/tg/client.js'
 import { botIdentity, clearWebhook, createPoller, webhookInfo } from './src/tg/poll.js'
-import { createCardStreamer } from './src/tg/stream.js'
 import { createFileLogger } from './src/log.js'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import { downloadFile, imageMediaType, safeFileName, sendDocument } from './src/tg/files.js'
-import { RichUnsupportedError, sendRichMessage } from './src/tg/rich.js'
-import { botCommands, languageFromTelegram, normalizeLanguage, translate } from './src/i18n.js'
-import { Config, NOTIFY_MODES, readConfig } from './src/config.js'
 import { access } from './src/bridge/access.js'
 import { commands } from './src/bridge/commands.js'
 import { core } from './src/bridge/core.js'
@@ -34,7 +23,7 @@ import { model } from './src/bridge/model.js'
 import { seams } from './src/bridge/seams.js'
 import { sessions } from './src/bridge/sessions.js'
 import { usage } from './src/bridge/usage.js'
-import { SAFE_TOOLS, TOKEN_REF, formatTokens, matchesTool } from './src/bridge/kernel.js'
+import { STATE_DIR, STATE_FILE, TOKEN_REF } from './src/bridge/kernel.js'
 
 export { Config } from './src/config.js'
 
@@ -42,9 +31,6 @@ export const name = 'telegram'
 
 /** Сервисы, без которых мост не имеет смысла. */
 export const inject = ['credentials', 'sessionController', 'workspaceRegistry']
-
-const STATE_DIR = process.env.DSH_HOME ?? path.join(os.homedir(), '.dsh')
-const STATE_FILE = path.join(STATE_DIR, 'telegram-bridge.json')
 
 export function hostSupported(ctx) {
   if (typeof ctx?.get !== 'function') return false
